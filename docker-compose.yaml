@@ -1,59 +1,87 @@
+version: '3.8'
+
 services:
-  keycloak-db:
-    image: mirror.gcr.io/library/postgres:15-alpine
-    container_name: keycloak-db
+  # PostgreSQL
+  postgres:
+    image: postgres:16-alpine
+    container_name: dailyrpg-postgres
     environment:
-      POSTGRES_DB: keycloak
-      POSTGRES_USER: ${KEYCLOAK_DB_USER:-keycloak}
-      POSTGRES_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-changeme}
+      POSTGRES_USER: dailyrpg
+      POSTGRES_PASSWORD: dailyrpg123
+      POSTGRES_DB: dailyrpg_identity
+    ports:
+      - "5432:5432"
     volumes:
-      - keycloak_db_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     networks:
-      - backend-network
+      - dailyrpg-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${KEYCLOAK_DB_USER:-keycloak} -d keycloak"]
-      interval: 10s
+      test: ["CMD-SHELL", "pg_isready -U dailyrpg -d dailyrpg_identity"]
+      interval: 5s
       timeout: 5s
       retries: 5
-    restart: unless-stopped
 
-  keycloak:
-    image: mirror.gcr.io/keycloak/keycloak:23.0.7
-    container_name: keycloak-service
-    command:
-      - start-dev
-      - --import-realm
-    environment:
-      KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://keycloak-db:5432/keycloak
-      KC_DB_USERNAME: ${KEYCLOAK_DB_USER:-keycloak}
-      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-changeme}
-      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
-      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin123}
-      KC_HOSTNAME: localhost
-      KC_HOSTNAME_PORT: 1488
-      KC_HTTP_PORT: 1488
-      KC_HOSTNAME_STRICT: false
-      KC_HOSTNAME_STRICT_HTTPS: false
-      KC_HTTP_ENABLED: "true"
-      KC_PROXY: edge
-      KC_LOG_LEVEL: INFO
-    volumes:
-      - ./backend/Keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
+  # RabbitMQ
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: dailyrpg-rabbitmq
     ports:
-      - "1488:1488"
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: dailyrpg
+      RABBITMQ_DEFAULT_PASS: dailyrpg123
     networks:
-      - backend-network
-    depends_on:
-      keycloak-db:
-        condition: service_healthy
-    restart: unless-stopped
+      - dailyrpg-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
-volumes:
-  keycloak_db_data:
-    name: keycloak_db_data
+  # Elasticsearch
+  elasticsearch:
+    image: elasticsearch:8.11.0
+    container_name: dailyrpg-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    networks:
+      - dailyrpg-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9200/_cluster/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Identity Service
+  identity-service:
+    build:
+      context: ./backend/identity-service
+      dockerfile: Dockerfile
+    container_name: dailyrpg-identity
+    ports:
+      - "5048:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=dailyrpg_identity;Username=dailyrpg;Password=dailyrpg123
+      - Jwt__Key=ThisIsMySuperSecretKeyForDailyRPG2024!@#$%^&*()_+
+      - Jwt__Issuer=DailyRPG
+      - Jwt__Audience=DailyRPG
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - dailyrpg-network
 
 networks:
-  backend-network:
-    name: backend-network
+  dailyrpg-network:
     driver: bridge
+
+volumes:
+  postgres_data:
