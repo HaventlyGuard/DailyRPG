@@ -1,0 +1,97 @@
+﻿{
+  "id": "rpg-task-manager",
+  "realm": "rpg-task-manager",
+  "displayName": "RPG Task Manager",
+  "enabled": true,
+  "registrationAllowed": true,
+  "registrationEmailAsUsername": false,
+  "verifyEmail": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "accessTokenLifespan": 900,
+  "ssoSessionIdleTimeout": 2592000,
+  "ssoSessionMaxLifespan": 5184000,
+  "defaultRole": {
+    "name": "player",
+    "description": "Default role for new users"
+  },
+  "roles": {
+    "realm": [
+      {
+        "name": "player",
+        "description": "Regular player"
+      },
+      {
+        "name": "admin",
+        "description": "Administrator"
+      },
+      {
+        "name": "moderator",
+        "description": "Moderator"
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "backend-api",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6",
+      "serviceAccountsEnabled": true,
+      "publicClient": false,
+      "protocol": "openid-connect",
+      "directAccessGrantsEnabled": true,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "protocolMappers": [
+        {
+          "name": "realm_roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "config": {
+            "claim.name": "roles",
+            "jsonType.label": "String",
+            "multivalued": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "testplayer",
+      "email": "testplayer@example.com",
+      "firstName": "Test",
+      "lastName": "Player",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "test123!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["player"]
+    },
+    {
+      "username": "adminplayer",
+      "email": "admin@example.com",
+      "firstName": "Admin",
+      "lastName": "User",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "admin123!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["player", "admin"]
+    }
+  ]
+}

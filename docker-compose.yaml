@@ -8,18 +8,20 @@ services:
     environment:
       POSTGRES_USER: dailyrpg
       POSTGRES_PASSWORD: dailyrpg123
-      POSTGRES_DB: dailyrpg_identity
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     networks:
       - dailyrpg-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U dailyrpg -d dailyrpg_identity"]
+      test: ["CMD-SHELL", "pg_isready -U dailyrpg"]
       interval: 5s
       timeout: 5s
       retries: 5
+
+  
 
   # RabbitMQ
   rabbitmq:
@@ -51,11 +53,6 @@ services:
       - "9200:9200"
     networks:
       - dailyrpg-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9200/_cluster/health"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
 
   # Identity Service
   identity-service:
@@ -74,8 +71,28 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      rabbitmq:
+    networks:
+      - dailyrpg-network
+
+  # Characteristic Service
+  characteristic-service:
+    build:
+      context: ./backend/character-service/characteristic-service
+      dockerfile: Dockerfile
+    container_name: dailyrpg-characteristic
+    ports:
+      - "5225:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=dailyrpg_character;Username=dailyrpg;Password=dailyrpg123
+      - Jwt__Key=ThisIsMySuperSecretKeyForDailyRPG2024!@#$%^&*()_+
+      - Jwt__Issuer=DailyRPG
+      - Jwt__Audience=DailyRPG
+    depends_on:
+      postgres:
         condition: service_healthy
+      identity-service:
+        condition: service_started
     networks:
       - dailyrpg-network
 
