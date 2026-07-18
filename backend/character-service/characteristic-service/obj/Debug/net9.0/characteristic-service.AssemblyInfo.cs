@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("characteristic-service")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b6b289195aeef6d1368ce9d869756e86d611418c")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+824d04d6a37b0b628c97511696f183ea850f9236")]
 [assembly: System.Reflection.AssemblyProductAttribute("characteristic-service")]
 [assembly: System.Reflection.AssemblyTitleAttribute("characteristic-service")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
